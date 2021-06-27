@@ -32,6 +32,7 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include "cu.h"
 
@@ -51,6 +52,7 @@ enum {
 	STATE_NEWLINE,
 	STATE_TILDE
 } last_state = STATE_NEWLINE;
+bool locally_echo = false;
 
 #if !defined(__dead)
 #define __dead __attribute__((__noreturn__))
@@ -63,10 +65,13 @@ void		stream_error(struct bufferevent *, short, void *);
 void		line_read(struct bufferevent *, void *);
 void		line_error(struct bufferevent *, short, void *);
 
+extern int asprintf(char **restrict strp, const char *restrict fmt, ...);
+extern long long strtonum(const char *nptr, long long minval, long long maxval,const char **errstr);
+
 __dead void
 usage(void)
 {
-	fprintf(stderr, "usage: %s [-l line] [-s speed | -speed]\n",
+	fprintf(stderr, "usage: %s [-l line] [-s speed | -speed] [-h | --halfduplex]\n",
 	    __progname);
 	exit(1);
 }
@@ -95,7 +100,7 @@ main(int argc, char **argv)
 			errx(1, "speed asprintf");
 	}
 
-	while ((opt = getopt(argc, argv, "l:s:")) != -1) {
+	while ((opt = getopt(argc, argv, "l:s:h")) != -1) {
 		switch (opt) {
 		case 'l':
 			line = optarg;
@@ -104,6 +109,9 @@ main(int argc, char **argv)
 			speed = strtonum(optarg, 0, UINT_MAX, &errstr);
 			if (errstr != NULL)
 				errx(1, "speed is %s: %s", errstr, optarg);
+			break;
+		case 'h':
+			locally_echo = true;
 			break;
 		default:
 			usage();
@@ -174,6 +182,8 @@ signal_event(int fd, short events, void *data)
 	printf("\r\n[SIG%d]\n", fd);
 
 	exit(0);
+	(void)events;
+	(void)data;
 }
 
 void
@@ -236,7 +246,7 @@ stream_read(struct bufferevent *bufev, void *data)
 	size_t	 new_size;
 	int	 state_change;
 
-	new_data = EVBUFFER_DATA(input_ev->input);
+	new_data = (char *)EVBUFFER_DATA(input_ev->input);
 	new_size = EVBUFFER_LENGTH(input_ev->input);
 	if (new_size == 0)
 		return;
@@ -250,6 +260,8 @@ stream_read(struct bufferevent *bufev, void *data)
 			break;
 		case STATE_NEWLINE:
 			if (state_change && *ptr == '~') {
+				printf("~");
+				fflush(stdout);
 				last_state = STATE_TILDE;
 				continue;
 			}
@@ -257,21 +269,33 @@ stream_read(struct bufferevent *bufev, void *data)
 				last_state = STATE_NONE;
 			break;
 		case STATE_TILDE:
+			printf("%c\r\n",*ptr);
+			fflush(stdout);
 			do_command(*ptr);
 			last_state = STATE_NEWLINE;
 			continue;
 		}
-
+		if(locally_echo) {
+			printf("%c",*ptr);
+			if(*ptr=='\r')
+				printf("\n");
+			fflush(stdout);
+		}
 		bufferevent_write(line_ev, ptr, 1);
 	}
 
 	evbuffer_drain(input_ev->input, new_size);
+	(void)bufev;
+	(void)data;
 }
 
 void
 stream_error(struct bufferevent *bufev, short what, void *data)
 {
 	event_loopexit(NULL);
+	(void)bufev;
+	(void)what;
+	(void)data;
 }
 
 void
@@ -280,7 +304,7 @@ line_read(struct bufferevent *bufev, void *data)
 	char	*new_data;
 	size_t	 new_size;
 
-	new_data = EVBUFFER_DATA(line_ev->input);
+	new_data = (char *)EVBUFFER_DATA(line_ev->input);
 	new_size = EVBUFFER_LENGTH(line_ev->input);
 	if (new_size == 0)
 		return;
@@ -290,12 +314,17 @@ line_read(struct bufferevent *bufev, void *data)
 	bufferevent_write(output_ev, new_data, new_size);
 
 	evbuffer_drain(line_ev->input, new_size);
+	(void)bufev;
+	(void)data;
 }
 
 void
 line_error(struct bufferevent *bufev, short what, void *data)
 {
 	event_loopexit(NULL);
+	(void)bufev;
+	(void)what;
+	(void)data;
 }
 
 /* Expands tildes in the file name. Based on code from ssh/misc.c. */

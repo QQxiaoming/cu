@@ -36,6 +36,9 @@ void	pipe_command(void);
 void	connect_command(void);
 void	send_file(void);
 void	send_xmodem(void);
+extern int 	closefrom(int start);
+extern long long strtonum(const char *nptr, long long minval, long long maxval,const char **errstr);
+void cu_err(int eval, const char *fmt, ...);
 
 void
 pipe_command(void)
@@ -53,6 +56,7 @@ pipe_command(void)
 	switch (pid = fork()) {
 	case -1:
 		cu_err(1, "fork");
+		break;
 	case 0:
 		fd = open(_PATH_DEVNULL, O_RDWR);
 		if (fd < 0 || dup2(fd, STDIN_FILENO) == -1)
@@ -104,6 +108,7 @@ connect_command(void)
 	switch (pid = fork()) {
 	case -1:
 		cu_err(1, "fork");
+		break;
 	case 0:
 		if (signal(SIGINT, SIG_DFL) == SIG_ERR)
 			_exit(1);
@@ -259,8 +264,9 @@ do_command(char c)
 	case '~':
 		bufferevent_write(line_ev, "~", 1);
 		break;
+	default:
 	case '?':
-		printf("\r\n"
+		printf("usage:\r\n"
 		    "~#      send break\r\n"
 		    "~$      pipe local command to remote host\r\n"
 		    "~>      send file to remote host\r\n"

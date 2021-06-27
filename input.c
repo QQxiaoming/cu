@@ -41,6 +41,7 @@ void
 input_signal(int sig)
 {
 	input_stop = 1;
+	(void)sig;
 }
 
 const char *

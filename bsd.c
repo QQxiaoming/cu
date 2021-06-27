@@ -15,6 +15,8 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <fcntl.h>
+#include <unistd.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 
@@ -28,4 +30,6 @@ int closefrom(int start)
 	for (fd = start; fd < max_fds.rlim_cur; fd++)	{
 		close(fd);
 	}
+
+	return 0;
 }

@@ -44,6 +44,7 @@ void
 xmodem_signal(int sig)
 {
 	xmodem_stop = 1;
+	(void)sig;
 }
 
 uint16_t
@@ -135,7 +136,7 @@ xmodem_send(const char *file)
 	}
 
 	tcflush(line_fd, TCIFLUSH);
-	if (xmodem_read(&c) != 0)
+	if (xmodem_read((char *)&c) != 0)
 		goto fail;
 	if (c == XMODEM_C)
 		crc_mode = 1;
@@ -179,7 +180,7 @@ xmodem_send(const char *file)
 			if (xmodem_write(buf, pktlen) != 0)
 				goto fail;
 
-			if (xmodem_read(&c) != 0)
+			if (xmodem_read((char *)&c) != 0)
 				goto fail;
 			if (c == XMODEM_ACK)
 				break;
