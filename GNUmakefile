@@ -8,7 +8,7 @@ CFLAGS += -Wextra
 #CFLAGS += -s
 
 cu: *.c
-	$(CC) $(CFLAGS) *.c -o cu -I$(LIBEVENTDIR)/include -L$(LIBEVENTDIR)/include/lib -levent
+	$(CC) $(CFLAGS) *.c -o cu -I$(LIBEVENTDIR)/include -L$(LIBEVENTDIR)/lib -levent
 
 .PHONY: clean install
 clean:
