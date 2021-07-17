@@ -282,6 +282,8 @@ stream_read(struct bufferevent *bufev, void *data)
 			fflush(stdout);
 		}
 		bufferevent_write(line_ev, ptr, 1);
+		if(*ptr=='\r')
+			bufferevent_write(line_ev, "\n", 1);
 	}
 
 	evbuffer_drain(input_ev->input, new_size);

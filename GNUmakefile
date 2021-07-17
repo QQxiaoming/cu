@@ -1,3 +1,6 @@
+prefix = /usr
+CC=gcc
+LIBEVENTDIR=/usr
 CFLAGS := -O0
 CFLAGS += -g
 CFLAGS += -Wall
@@ -5,8 +8,10 @@ CFLAGS += -Wextra
 #CFLAGS += -s
 
 cu: *.c
-	gcc $(CFLAGS) *.c -o cu -levent
+	$(CC) $(CFLAGS) *.c -o cu -I$(LIBEVENTDIR)/include -L$(LIBEVENTDIR)/include/lib -levent
 
-.PHONY: clean
+.PHONY: clean install
 clean:
 	rm -vf cu
+install:
+	cp cu $(prefix)/bin/cu
